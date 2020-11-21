@@ -1,3 +1,5 @@
+import argparse
+import os
 import re
 import requests
 from circuitbreaker import circuit
@@ -107,7 +109,7 @@ def axesor_validation(vat_number):
     Returns: True if the vat number exists in Axesor's database or False if not.
 
     """
-    url = 'https://www.axesor.es/buscar/empresas?q={0}&tabActivo=empresas'.format(vat_number)
+    url = f'https://www.axesor.es/buscar/empresas?q={vat_number}&tabActivo=empresas'
     response = requests.request(method="get", url=url, allow_redirects=False)
 
     if response.status_code == 200:
@@ -119,37 +121,60 @@ def axesor_validation(vat_number):
         raise HTTPError("Unexpected result from axesor")
 
 
-def main():
+def locate_vax_number(source, output):
     error_msg = "Not Found"
 
-    with open('cifs.csv', 'r') as reader:
-        with open('out.csv', 'w') as writer:
+    with open(source, 'r') as reader:
+        with open(output, 'w') as writer:
 
             for line in reader.readlines():
 
                 vat_number = normalize(line)
-                print(vat_number)
+
+                print(f"Processing {vat_number}")
 
                 if Validator.validate("ES" + vat_number, "ES"):
 
                     result = vies_validation("ES" + vat_number, "ES")
 
                     if result is True:
-                        writer.write("{0},{1},\n".format(vat_number, "ES"))
+                        writer.write(f"{vat_number},ES,\n")
                     else:
 
                         if axesor_validation(vat_number) is True:
-                            writer.write("{0},{1},\n".format(vat_number, "ES"))
+                            writer.write(f"{vat_number},ES,\n")
                         else:
-                            writer.write("{0},{1},{2}\n".format(vat_number, "ES", error_msg))
+                            writer.write(f"{vat_number},ES,{error_msg}\n")
                 else:
                     # non-spanish vat numbers should have their country code and be in the vies system
                     if Validator.validate(vat_number, "GB") and vies_validation(vat_number, "GB"):
-                        writer.write("{0},{1},\n".format(vat_number, "GB"))
+                        writer.write(f"{vat_number},GB,\n")
                     elif Validator.validate(vat_number, "DE") and vies_validation(vat_number, "DE"):
-                        writer.write("{0},{1},\n".format(vat_number, "DE"))
+                        writer.write(f"{vat_number},DE,\n")
                     else:
-                        writer.write("{0},,{1}\n".format(vat_number, error_msg))
+                        writer.write(f"{vat_number},,{error_msg}\n")
+
+
+def main():
+
+    def dir_path(file):
+        directory = os.path.dirname(file)
+        if os.path.isdir(directory):
+            return file
+        else:
+            raise argparse.ArgumentTypeError(f"{directory}/ is not a valid path")
+
+    def file_path(file):
+        if os.path.isfile(file):
+            return file
+        else:
+            raise argparse.ArgumentTypeError(f"{file} is not a valid path")
+
+    parser = argparse.ArgumentParser(description='Locate the countries of a list of vat numbers')
+    parser.add_argument('-i', '--input', help='the input file', required=True, type=file_path)
+    parser.add_argument('-o', '--output', help='the output file', required=True, type=dir_path)
+    args = parser.parse_args()
+    locate_vax_number(args.input, args.output)
 
 
 if __name__ == "__main__":
