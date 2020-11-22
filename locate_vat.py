@@ -3,7 +3,7 @@ import os
 import re
 import requests
 from circuitbreaker import circuit
-from pyVies import api  # pip install pyvieser
+from pyVies import api
 
 
 class HTTPError(Exception):
