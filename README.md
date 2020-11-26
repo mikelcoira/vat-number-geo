@@ -1,5 +1,10 @@
 # vat-number-geo
 
+```python
+pip install -r requirements.txt
+```
+
+
 ```bash
 python locate_vat.py -i /path/to/input/file/vat-numbers.csv -o /path/to/output/file/out.csv
 ```

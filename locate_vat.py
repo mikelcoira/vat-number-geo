@@ -91,9 +91,10 @@ def vies_validation(vat_number, country):
     return result_vies.valid
 
 
+@circuit(failure_threshold=5, recovery_timeout=10, expected_exception=HTTPError)
 def axesor_validation(vat_number):
     """
-    For Spanish companies that are not registered in VIES, we must check if the vat number is valid.
+    For Spanish companies that are not registered in VIES, we must check if the itervat number is valid.
     Axesor offers a web form to retrieve basic info about any Spanish company using its vat number.
     We take advantage of that service to check the companies' existence.
 
